@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.core.cache import cache
 
 from ..forms import PostForm
-from ..models import Post, Group, User, Follow
+from ..models import Post, Group, User, Follow, Comment
 from ..views import PAGE_COUNT
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
@@ -44,6 +44,11 @@ class PostPagesTests(TestCase):
             text='Текст',
             image=uploaded,
         )
+        cls.comment = Comment.objects.create(
+            post=cls.post,
+            author=cls.user,
+            text='Тестовый коммент'
+        )
         cls.follow = Follow.objects.create(
             user=cls.user,
             author=cls.user,
@@ -61,7 +66,11 @@ class PostPagesTests(TestCase):
         self.authorized_client = Client()
         self.unfollower_client = Client()
         self.follower_client = Client()
+        self.author = Client()
         self.authorized_client.force_login(self.user)
+        self.unfollower_client.force_login(self.user)
+        self.follower_client.force_login(self.user)
+        self.author.force_login(self.user)
         self.unfollower_user = User.objects.create_user(username='noname')
         self.follower_user = User.objects.create_user(username='follower')
         self.author = User.objects.create_user(username='following')
@@ -82,7 +91,8 @@ class PostPagesTests(TestCase):
             reverse(
                 'posts:post_edit', kwargs={'post_id': self.post.id}
             ): 'posts/create.html',
-            reverse('posts:post_create'): 'posts/create.html'
+            reverse('posts:post_create'): 'posts/create.html',
+            reverse('posts:follow_index'): 'posts/follow.html',
         }
         for reverse_name, template in templates_pages_names.items():
             with self.subTest(template=template):
@@ -167,6 +177,20 @@ class PostPagesTests(TestCase):
             response_detail.context['post'].image, self.post.image
         )
 
+    def test_add_comment_is_create_on_page(self):
+        """Комментарий появился на странице"""
+        response = self.authorized_client.get(
+            reverse('posts:post_detail', kwargs={
+                'post_id': self.post.id})
+        )
+        test_comment = response.context['comments'][0]
+        test_var = {
+            test_comment: Comment.objects.last()
+        }
+        for var, name in test_var.items():
+            with self.subTest(var=var):
+                self.assertEqual(var, name)
+
     def test_cache_index(self):
         """Тестирование кеша"""
         cache.clear()
@@ -177,8 +201,8 @@ class PostPagesTests(TestCase):
         self.assertEqual(response_1.content, response_2.content)
 
     def test_auth_user_can_follow(self):
-        """Авторизованный пользователь можнот подписываться на других."""
-        self.unfollower_client.get(
+        """Авторизованный пользователь может подписываться на других."""
+        self.follower_client.get(
             reverse('posts:profile_follow', kwargs={'username': self.author}))
         self.assertFalse(Follow.objects.filter(
             user=self.unfollower_user,
@@ -192,14 +216,14 @@ class PostPagesTests(TestCase):
                 'posts:profile_unfollow', kwargs={'username': self.author})
         )
         self.assertFalse(Follow.objects.filter(
-            user=self.follower_user,
+            user=self.unfollower_user,
             author=self.author,
         ).exists())
 
     def test_new_post_follower(self):
         """Новая запись появилась у подписчика."""
         follow_count = Follow.objects.count()
-        self.authorized_client.get(reverse(
+        self.follower_client.get(reverse(
             'posts:profile_follow',
             kwargs={'username': self.author}
         ))
@@ -208,7 +232,7 @@ class PostPagesTests(TestCase):
     def test_new_post_unfollower(self):
         """Новая запись не появилась у неподписанного пользователя."""
         follow_count = Follow.objects.count()
-        self.authorized_client.get(reverse(
+        self.unfollower_client.get(reverse(
             'posts:profile_unfollow',
             kwargs={'username': self.author}
         ))

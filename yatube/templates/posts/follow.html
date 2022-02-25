@@ -5,9 +5,9 @@
 {% block title %}Избранное{% endblock %}
 
 {% block content %}
+  {% include 'posts/includes/switcher.html' %}
   <h1>Избранное</h1>
   <br>
-  {% include 'posts/includes/switcher.html' %}
     {% for post in page_obj %}
       {% include 'posts/includes/post_list.html' %}
       {% if post.group %}   

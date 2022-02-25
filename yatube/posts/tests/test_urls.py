@@ -53,6 +53,13 @@ class PostsURLTests(TestCase):
         url_templates_names = {
             f'/posts/{self.post.id}/edit/': '/auth/login/?next=/posts/1/edit/',
             '/create/': '/auth/login/?next=/create/',
+            f'/posts/{self.post.id}/comment/':
+                '/auth/login/?next=/posts/1/comment/',
+            '/follow/': '/auth/login/?next=/follow/',
+            f'/profile/{self.post.author}/follow/':
+                '/auth/login/?next=/profile/auth/follow/',
+            f'/profile/{self.post.author}/unfollow/':
+                '/auth/login/?next=/profile/auth/unfollow/',
         }
         for url, template in url_templates_names.items():
             with self.subTest(url=url):
@@ -79,6 +86,8 @@ class PostsURLTests(TestCase):
             f'/posts/{self.post.id}/': 'posts/post_detail.html',
             f'/profile/{self.post.author}/': 'posts/profile.html',
             f'/posts/{self.post.id}/edit/': 'posts/create.html',
+            '/follow/': 'posts/follow.html',
+            '/unexisting_page/': 'core/404.html',
         }
         for url, template in templates_url_names.items():
             with self.subTest(url=url):

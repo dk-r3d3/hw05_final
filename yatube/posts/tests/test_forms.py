@@ -137,6 +137,8 @@ class PostCreateFormTests(TestCase):
         comment_count = Comment.objects.count()
         form_data = {
             'text': 'Тестовый коммент',
+            'post': self.post,
+            'author': self.user,
         }
         response = self.authorized_client.post(
             reverse('posts:add_comment',
@@ -146,17 +148,14 @@ class PostCreateFormTests(TestCase):
         )
         self.assertEqual(Comment.objects.count(), comment_count + 1)
         self.assertEqual(response.status_code, HTTPStatus.OK)
-
-    def test_add_comment_is_create_on_page(self):
-        """Комментарий появился на странице"""
-        response = self.authorized_client.get(
-            reverse('posts:post_detail', kwargs={
-                'post_id': self.post.id})
+        """
+        Получили комментарий из базы и проверили что там верно
+        заполнены текст, автор и пост
+        """
+        self.assertTrue(
+            Comment.objects.filter(
+                text=form_data['text'],
+                post=form_data['post'],
+                author=form_data['author'],
+            ).exists()
         )
-        test_comment = response.context['comments'][0]
-        test_var = {
-            test_comment: Comment.objects.last()
-        }
-        for var, name in test_var.items():
-            with self.subTest(var=var):
-                self.assertEqual(var, name)
