@@ -49,10 +49,7 @@ class PostPagesTests(TestCase):
             author=cls.user,
             text='Тестовый коммент'
         )
-        cls.follow = Follow.objects.create(
-            user=cls.user,
-            author=cls.user,
-        )
+        cls.follow = Follow.objects
 
     @classmethod
     def tearDownClass(cls):
@@ -68,11 +65,11 @@ class PostPagesTests(TestCase):
         self.follower_client = Client()
         self.author = Client()
         self.authorized_client.force_login(self.user)
-        self.unfollower_client.force_login(self.user)
-        self.follower_client.force_login(self.user)
         self.author.force_login(self.user)
         self.unfollower_user = User.objects.create_user(username='noname')
+        self.unfollower_client.force_login(self.user)
         self.follower_user = User.objects.create_user(username='follower')
+        self.follower_client.force_login(self.user)
         self.author = User.objects.create_user(username='following')
 
     def test_pages_uses_correct_template(self):
@@ -202,7 +199,7 @@ class PostPagesTests(TestCase):
 
     def test_auth_user_can_follow(self):
         """Авторизованный пользователь может подписываться на других."""
-        self.follower_client.get(
+        self.unfollower_client.get(
             reverse('posts:profile_follow', kwargs={'username': self.author}))
         self.assertFalse(Follow.objects.filter(
             user=self.unfollower_user,
@@ -211,14 +208,19 @@ class PostPagesTests(TestCase):
 
     def test_auth_user_can_unfollow(self):
         """Авторизованный пользователь может удалять других из подписок."""
-        self.unfollower_client.get(
-            reverse(
-                'posts:profile_unfollow', kwargs={'username': self.author})
+        self.authorized_client.get(
+            reverse('posts:profile_follow', kwargs={'username': self.author})
         )
+        follow_author_before = Follow.objects.all().count()
+        self.authorized_client.get(
+            reverse('posts:profile_unfollow', kwargs={'username': self.author})
+        )
+        follow_author_after = Follow.objects.all().count()
         self.assertFalse(Follow.objects.filter(
-            user=self.unfollower_user,
+            user=self.user,
             author=self.author,
         ).exists())
+        self.assertEqual(follow_author_before - 1, follow_author_after)
 
     def test_new_post_follower(self):
         """Новая запись появилась у подписчика."""
@@ -228,6 +230,12 @@ class PostPagesTests(TestCase):
             kwargs={'username': self.author}
         ))
         self.assertEqual(Follow.objects.count(), follow_count + 1)
+        self.assertTrue(
+            Follow.objects.filter(
+                user=self.user,
+                author=self.author,
+            ).exists()
+        )
 
     def test_new_post_unfollower(self):
         """Новая запись не появилась у неподписанного пользователя."""
@@ -237,6 +245,12 @@ class PostPagesTests(TestCase):
             kwargs={'username': self.author}
         ))
         self.assertEqual(Follow.objects.count(), follow_count)
+        self.assertFalse(
+            Follow.objects.filter(
+                user=self.user,
+                author=self.author,
+            ).exists()
+        )
 
 
 class PaginatorViewsTest(TestCase):
