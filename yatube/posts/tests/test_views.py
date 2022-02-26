@@ -63,14 +63,14 @@ class PostPagesTests(TestCase):
         self.authorized_client = Client()
         self.unfollower_client = Client()
         self.follower_client = Client()
-        self.author = Client()
         self.authorized_client.force_login(self.user)
-        self.author.force_login(self.user)
         self.unfollower_user = User.objects.create_user(username='noname')
-        self.unfollower_client.force_login(self.user)
+        self.unfollower_client.force_login(self.unfollower_user)
         self.follower_user = User.objects.create_user(username='follower')
-        self.follower_client.force_login(self.user)
+        self.follower_client.force_login(self.follower_user)
+        self.author_client = Client()
         self.author = User.objects.create_user(username='following')
+        self.author_client.force_login(self.author)
 
     def test_pages_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
@@ -201,7 +201,7 @@ class PostPagesTests(TestCase):
         """Авторизованный пользователь может подписываться на других."""
         self.unfollower_client.get(
             reverse('posts:profile_follow', kwargs={'username': self.author}))
-        self.assertFalse(Follow.objects.filter(
+        self.assertTrue(Follow.objects.filter(
             user=self.unfollower_user,
             author=self.author,
         ).exists())
@@ -225,32 +225,33 @@ class PostPagesTests(TestCase):
     def test_new_post_follower(self):
         """Новая запись появилась у подписчика."""
         follow_count = Follow.objects.count()
+        response = self.follower_client.get(reverse('posts:follow_index'))
         self.follower_client.get(reverse(
             'posts:profile_follow',
             kwargs={'username': self.author}
         ))
         self.assertEqual(Follow.objects.count(), follow_count + 1)
+        self.authorized_client.get(
+            reverse('posts:profile_follow', kwargs={'username': self.author})
+        )
         self.assertTrue(
             Follow.objects.filter(
                 user=self.user,
                 author=self.author,
             ).exists()
         )
+        self.assertIn('page_obj', response.context)
 
     def test_new_post_unfollower(self):
         """Новая запись не появилась у неподписанного пользователя."""
         follow_count = Follow.objects.count()
+        response = self.unfollower_client.get(reverse('posts:follow_index'))
         self.unfollower_client.get(reverse(
             'posts:profile_unfollow',
             kwargs={'username': self.author}
         ))
         self.assertEqual(Follow.objects.count(), follow_count)
-        self.assertFalse(
-            Follow.objects.filter(
-                user=self.user,
-                author=self.author,
-            ).exists()
-        )
+        self.assertIn('page_obj', response.context)
 
 
 class PaginatorViewsTest(TestCase):
