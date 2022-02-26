@@ -139,7 +139,7 @@ class PostPagesTests(TestCase):
 
     def test_create_correct_context(self):
         """Шаблон create сформирован с правильным контекстом."""
-        response = (self.authorized_client.get(reverse('posts:post_create')))
+        response = self.authorized_client.get(reverse('posts:post_create'))
         self.assertIn('form', response.context)
         form = response.context['form']
         self.assertIsInstance(form, PostForm)
@@ -241,6 +241,9 @@ class PostPagesTests(TestCase):
             ).exists()
         )
         self.assertIn('page_obj', response.context)
+        self.author_client.get(reverse('posts:post_create'))
+        response_1 = self.follower_client.get(reverse('posts:follow_index'))
+        self.assertIn('page_obj', response_1.context)
 
     def test_new_post_unfollower(self):
         """Новая запись не появилась у неподписанного пользователя."""
@@ -252,6 +255,10 @@ class PostPagesTests(TestCase):
         ))
         self.assertEqual(Follow.objects.count(), follow_count)
         self.assertIn('page_obj', response.context)
+        response = self.unfollower_client.get(reverse(
+            'posts:follow_index'))
+        object = len(response.context['page_obj'].object_list)
+        self.assertEqual(object, 0)
 
 
 class PaginatorViewsTest(TestCase):
