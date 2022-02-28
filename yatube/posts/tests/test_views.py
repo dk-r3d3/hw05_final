@@ -225,11 +225,17 @@ class PostPagesTests(TestCase):
     def test_new_post_follower(self):
         """Новая запись появилась у подписчика."""
         follow_count = Follow.objects.count()
-        response = self.follower_client.get(reverse('posts:follow_index'))
+        post = Post.objects.create(author=self.author)
+        response = self.authorized_client.get(reverse('posts:follow_index'))
+        """"До создания поста страница пустая."""
+        self.assertEqual(len(response.context['page_obj']), 0)
+
+        """подписываем пользователя"""
         self.follower_client.get(reverse(
             'posts:profile_follow',
             kwargs={'username': self.author}
         ))
+        """проверяем, что появилась подписка, (не было в задании)"""
         self.assertEqual(Follow.objects.count(), follow_count + 1)
         self.authorized_client.get(
             reverse('posts:profile_follow', kwargs={'username': self.author})
@@ -240,19 +246,15 @@ class PostPagesTests(TestCase):
                 author=self.author,
             ).exists()
         )
-        self.assertIn('page_obj', response.context)
-        self.author_client.get(reverse('posts:post_create'))
+
+        """ -_- """
         response_1 = self.follower_client.get(reverse('posts:follow_index'))
-        self.assertIn('page_obj', response_1.context)
+        self.assertEqual(post, response_1.context['page_obj'][0])
 
     def test_new_post_unfollower(self):
         """Новая запись не появилась у неподписанного пользователя."""
         follow_count = Follow.objects.count()
         response = self.unfollower_client.get(reverse('posts:follow_index'))
-        self.unfollower_client.get(reverse(
-            'posts:profile_unfollow',
-            kwargs={'username': self.author}
-        ))
         self.assertEqual(Follow.objects.count(), follow_count)
         self.assertIn('page_obj', response.context)
         response = self.unfollower_client.get(reverse(
