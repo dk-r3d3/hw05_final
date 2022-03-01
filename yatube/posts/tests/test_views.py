@@ -224,30 +224,13 @@ class PostPagesTests(TestCase):
 
     def test_new_post_follower(self):
         """Новая запись появилась у подписчика."""
-        follow_count = Follow.objects.count()
-        post = Post.objects.create(author=self.author)
+        post = Post.objects.create(author=self.author, text='Тестовый текст')
         response = self.authorized_client.get(reverse('posts:follow_index'))
-        """"До создания поста страница пустая."""
         self.assertEqual(len(response.context['page_obj']), 0)
-
-        """подписываем пользователя"""
         self.follower_client.get(reverse(
             'posts:profile_follow',
             kwargs={'username': self.author}
         ))
-        """проверяем, что появилась подписка, (не было в задании)"""
-        self.assertEqual(Follow.objects.count(), follow_count + 1)
-        self.authorized_client.get(
-            reverse('posts:profile_follow', kwargs={'username': self.author})
-        )
-        self.assertTrue(
-            Follow.objects.filter(
-                user=self.user,
-                author=self.author,
-            ).exists()
-        )
-
-        """ -_- """
         response_1 = self.follower_client.get(reverse('posts:follow_index'))
         self.assertEqual(post, response_1.context['page_obj'][0])
 
