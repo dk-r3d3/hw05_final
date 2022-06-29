@@ -1,7 +1,7 @@
 {% load static %}
 
 <header>
-  <nav class="navbar navbar-light" style="background-color: LightSeaGreen">
+  <nav class="navbar navbar-light fixed-top" style="background-color: LightSeaGreen">
     <div class="container">
       <a class="navbar-brand" href="{% url 'posts:index' %}">
         <img src="{% static 'img/logo.png' %}"
@@ -12,25 +12,25 @@
       <ul class="nav nav-pills">
         {% with request.resolver_match.view_name as view_name %}
         <li class="nav-item"> 
-          <a class="nav-link
+          <a class="nav-link 
           {% if view_name  == 'about:author' %}active{% endif %}"
-          href="{% url 'about:author' %}">Об авторе</a>
+          href="{% url 'about:author' %}" style="color:rgb(3, 71, 165)">Об авторе</a>
         </li>
         <li class="nav-item">
           <a class="nav-link 
           {% if view_name  == 'about:tech' %}active{% endif %}"
-          href="{% url 'about:tech' %}">Технологии</a>
+          href="{% url 'about:tech' %}" style="color:rgb(3, 71, 165)">Технологии</a>
         </li>
         {% if request.user.is_authenticated %}
         <li class="nav-item"> 
           <a class="nav-link
           {% if view_name  == 'posts:post_create' %}active{% endif %}"
-          href="{% url 'posts:post_create' %}">Новая запись</a>
+          href="{% url 'posts:post_create' %}" style="color:rgb(3, 71, 165)">Новая запись</a>
         </li>
         <li class="nav-item"> 
           <a class="nav-link link-light
           {% if view_name  == 'users:password_reset_form' %}active{% endif %}"
-          href="{% url 'users:password_reset_form' %}">Изменить пароль</a>
+          href="{% url 'users:password_reset_form' %}" >Изменить пароль</a>
         </li>
         <li class="nav-item"> 
           <a class="nav-link link-light

@@ -11,7 +11,7 @@ FOLLOW_PAGE_COUNT = 10
 
 @cache_page(20, key_prefix='index_page')
 def index(request):
-    post_list = Post.objects.order_by('-pub_date')
+    post_list = Post.objects.all()
     paginator = Paginator(post_list, PAGE_COUNT)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
